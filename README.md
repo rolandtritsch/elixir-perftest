@@ -12,7 +12,7 @@ To make this work you need to ...
 * install [asdf][]
 * run `asdf install erlang latest`
 * run `asdf install elixir latest`
-* `export RABBITMQ_URL=amqps://<username>:<password>@<hostname>:5671`
+* `export RABBITMQ_URL=amqps://<username>:<password>@<hostname>:5671&verify=verify_none`
 * run `mix perftest 1000 100 1 1 1`
 
 This will run a perftest against the cluster you have specified with ...
