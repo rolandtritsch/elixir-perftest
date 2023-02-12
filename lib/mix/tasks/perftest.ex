@@ -70,11 +70,11 @@ defmodule Mix.Tasks.Perftest do
   defp queue_name(), do: "perftest"
 
   defp declare_exchange(channel) do
-    ex_opts = [auto_delete: true, durable: true]
+    ex_opts = [auto_delete: false, durable: false]
     :ok = AMQP.Exchange.declare(channel, exchange_name(), :topic, ex_opts)
 
     arguments = [{"x-max-length", :long, 1}]
-    q_opts = [auto_delete: true, arguments: arguments]
+    q_opts = [auto_delete: false, arguments: arguments]
     {:ok, _queue} = AMQP.Queue.declare(channel, queue_name(), q_opts)
 
     :ok = AMQP.Queue.bind(channel, queue_name(), exchange_name(), routing_key: "#")
@@ -86,6 +86,8 @@ defmodule Mix.Tasks.Perftest do
     Mix.shell().info("#{DateTime.now!("Etc/UTC")} - Starting #{n_of_producers} tasks ...")
 
     batch_size = trunc(n / n_of_producers)
+    routing_key = ""
+    p_opts = [persistent: false]
 
     pids =
       1..n_of_producers
@@ -95,8 +97,9 @@ defmodule Mix.Tasks.Perftest do
             AMQP.Basic.publish(
               channels |> Enum.random(),
               exchange_name(),
-              "",
-              size |> Randomizer.randomizer()
+              routing_key,
+              size |> Randomizer.randomizer(),
+              p_opts
             )
           end
         end)
