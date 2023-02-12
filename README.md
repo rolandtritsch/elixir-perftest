@@ -10,9 +10,10 @@ is as fast as it can be.
 To make this work you need to ...
 
 * install [asdf][]
-* run `asdf install erlang latest`
-* run `asdf install elixir latest`
+* run `asdf install erlang latest && asdf local erlang latest`
+* run `asdf install elixir latest && asdf local elixir latest`
 * `export RABBITMQ_URL=amqps://<username>:<password>@<hostname>:5671&verify=verify_none`
+* run `mix deps.get && mix perftest`
 * run `mix perftest 1000 100 1 1 1`
 
 This will run a perftest against the cluster you have specified with ...
