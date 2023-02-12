@@ -7,14 +7,21 @@ This is a very small `mix task` that allows you to kind-a do the same
 with `elixir`, just to make sure whatever you do in your elixir app
 is as fast as it can be.
 
+## Setup
+
 To make this work you need to ...
 
 * install [asdf][]
 * run `asdf install erlang latest && asdf local erlang latest`
 * run `asdf install elixir latest && asdf local elixir latest`
-* `export RABBITMQ_URL=amqps://<username>:<password>@<hostname>:5671&verify=verify_none`
 * run `mix deps.get && mix perftest`
-* run `mix perftest 1000 100 1 1 1`
+
+## Running it
+
+```bash
+export RABBITMQ_URL=amqps://<username>:<password>@<hostname>:5671&verify=verify_none
+mix perftest 1000 100 1 1 1
+```
 
 This will run a perftest against the cluster you have specified with ...
 
@@ -39,6 +46,15 @@ Other notable (hard-coded) configurations are ...
 
 Note: With `publish_confirm:false` we need to wait for the inboxes of 
 the channel gen_servers to get drained, before we can call it a day.
+
+## Compare to [perftest][]
+
+Afterwards you can run perfest against the same exchange/queue with ...
+
+```bash
+export URI=amqps://<username>:<password>@<hostname>:5671&verify=verify_none
+docker run --interactive --tty --rm --env URI pivotalrabbitmq/perf-test:latest --producers 1 --producer-channel-count 1 --consumers 0 --consumer-channel-count 0 --size 2000 --time 10 --id "1:1:0:0:2000:a" --autoack --type topic --exchange perftest
+```
 
 [asdf]: https://asdf-vm.com/
 [perftest]: https://rabbitmq.github.io/rabbitmq-perf-test/stable/htmlsingle/
