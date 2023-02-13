@@ -88,7 +88,7 @@ defmodule Mix.Tasks.Perftest do
     batch_size = trunc(n / n_of_producers)
     routing_key = ""
     p_opts = [persistent: false]
-    payload = String.duplicate("0", size)
+    payload = size |> Randomizer.randomizer()
     n_of_channels = length(channels)
 
     pids =
@@ -97,7 +97,7 @@ defmodule Mix.Tasks.Perftest do
         Task.async(fn ->
           for i <- 1..batch_size do
             AMQP.Basic.publish(
-              channels |> Enum.at(rem(i, n_of_channels)),
+              channels |> round_robin(i, n_of_channels),
               exchange_name(),
               routing_key,
               payload,
@@ -113,6 +113,8 @@ defmodule Mix.Tasks.Perftest do
     :ok = await_inboxes_empty()
     Mix.shell().info("#{DateTime.now!("Etc/UTC")} - ... inboxes empty!")
   end
+
+  defp round_robin(channels, i, n), do: channels |> Enum.at(rem(i, n))
 
   defp await_inboxes_empty(), do: await_inboxes_empty({-1, self(), ""})
 
