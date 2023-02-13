@@ -88,6 +88,7 @@ defmodule Mix.Tasks.Perftest do
     batch_size = trunc(n / n_of_producers)
     routing_key = ""
     p_opts = [persistent: false]
+    payload = String.duplicate("0", size)
 
     pids =
       1..n_of_producers
@@ -98,7 +99,7 @@ defmodule Mix.Tasks.Perftest do
               channels |> Enum.random(),
               exchange_name(),
               routing_key,
-              size |> Randomizer.randomizer(),
+              payload,
               p_opts
             )
           end
