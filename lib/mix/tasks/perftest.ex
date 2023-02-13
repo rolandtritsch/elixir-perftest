@@ -94,7 +94,7 @@ defmodule Mix.Tasks.Perftest do
       1..n_of_producers
       |> Enum.map(fn _ ->
         Task.async(fn ->
-          for i <- 1..batch_size do
+          for _ <- 1..batch_size do
             AMQP.Basic.publish(
               channels |> Enum.random(),
               exchange_name(),
