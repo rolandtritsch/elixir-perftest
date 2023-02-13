@@ -89,14 +89,15 @@ defmodule Mix.Tasks.Perftest do
     routing_key = ""
     p_opts = [persistent: false]
     payload = String.duplicate("0", size)
+    n_of_channels = length(channels)
 
     pids =
       1..n_of_producers
       |> Enum.map(fn _ ->
         Task.async(fn ->
-          for _ <- 1..batch_size do
+          for i <- 1..batch_size do
             AMQP.Basic.publish(
-              channels |> Enum.random(),
+              channels |> Enum.at(rem(i, n_of_channels)),
               exchange_name(),
               routing_key,
               payload,
