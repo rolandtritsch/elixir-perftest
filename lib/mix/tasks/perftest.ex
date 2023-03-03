@@ -82,7 +82,7 @@ defmodule Mix.Tasks.Perftest do
       {"x-max-length", :long, max_length},
       {"x-queue-type", :longstr, "quorum"}
     ]
-    # --- q_opts = [auto_delete: false, arguments: arguments]
+
     q_opts = [auto_delete: false, durable: true, arguments: arguments]
     {:ok, _queue} = channel |> AMQP.Queue.declare(queue_name(), q_opts)
 
