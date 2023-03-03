@@ -75,11 +75,15 @@ defmodule Mix.Tasks.Perftest do
     _ = channel |> AMQP.Queue.delete(queue_name())
     _ = channel |> AMQP.Exchange.delete(exchange_name())
 
-    ex_opts = [auto_delete: false, durable: false]
+    ex_opts = [auto_delete: false, durable: true]
     :ok = channel |> AMQP.Exchange.declare(exchange_name(), :topic, ex_opts)
 
-    arguments = [{"x-max-length", :long, max_length}]
-    q_opts = [auto_delete: false, arguments: arguments]
+    arguments = [
+      {"x-max-length", :long, max_length},
+      {"x-queue-type", :longstr, "quorum"}
+    ]
+    # --- q_opts = [auto_delete: false, arguments: arguments]
+    q_opts = [auto_delete: false, durable: true, arguments: arguments]
     {:ok, _queue} = channel |> AMQP.Queue.declare(queue_name(), q_opts)
 
     :ok = channel |> AMQP.Queue.bind(queue_name(), exchange_name(), routing_key: "#")
