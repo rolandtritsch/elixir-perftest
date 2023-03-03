@@ -8,7 +8,7 @@ defmodule Mix.Tasks.Perftest do
   # --- public functions
   @impl true
   @spec run([binary()]) :: :ok
-  def run([n, size, n_of_producers, n_of_connections, n_of_channels] = args) do
+  def run([n, size, n_of_producers, n_of_connections, n_of_channels, max_length] = args) do
     Mix.shell().info("Starting perftest with #{inspect(args)} ...")
 
     {n, ""} = Integer.parse(n)
@@ -16,13 +16,14 @@ defmodule Mix.Tasks.Perftest do
     {n_of_producers, ""} = Integer.parse(n_of_producers)
     {n_of_connections, ""} = Integer.parse(n_of_connections)
     {n_of_channels, ""} = Integer.parse(n_of_channels)
+    {max_length, ""} = Integer.parse(max_length)
 
-    channels = open_channels(amqp_url(), n_of_connections, n_of_channels)
-    :ok = declare_exchange(channels |> hd())
+    channels = amqp_url() |> open_channels(n_of_connections, n_of_channels)
+    :ok = channels |> hd() |> declare_exchange(max_length)
 
     {time, _} =
       :timer.tc(fn ->
-        publish_messages(channels, n, size, n_of_producers)
+        channels |> publish_messages(n, size, n_of_producers)
       end)
 
     Mix.shell().info(
@@ -45,6 +46,7 @@ defmodule Mix.Tasks.Perftest do
     producers - number of concurrent producer tasks
     connections - number of connections
     channels - number of channels
+    max-length - number of messages to keep in queue
     """
   end
 
@@ -55,11 +57,11 @@ defmodule Mix.Tasks.Perftest do
   defp open_channels(url, n_of_connections, n_of_channels) do
     1..n_of_connections
     |> Enum.map(fn _ ->
-      {:ok, conn} = AMQP.Connection.open(url)
+      {:ok, conn} = url |> AMQP.Connection.open()
 
       1..n_of_channels
       |> Enum.map(fn _ ->
-        {:ok, chan} = AMQP.Channel.open(conn)
+        {:ok, chan} = conn |> AMQP.Channel.open()
         chan
       end)
     end)
@@ -69,15 +71,15 @@ defmodule Mix.Tasks.Perftest do
   defp exchange_name(), do: "perftest"
   defp queue_name(), do: "perftest"
 
-  defp declare_exchange(channel) do
+  defp declare_exchange(channel, max_length) do
     ex_opts = [auto_delete: false, durable: false]
-    :ok = AMQP.Exchange.declare(channel, exchange_name(), :topic, ex_opts)
+    :ok = channel |> AMQP.Exchange.declare(exchange_name(), :topic, ex_opts)
 
-    arguments = [{"x-max-length", :long, 1}]
+    arguments = [{"x-max-length", :long, max_length}]
     q_opts = [auto_delete: false, arguments: arguments]
-    {:ok, _queue} = AMQP.Queue.declare(channel, queue_name(), q_opts)
+    {:ok, _queue} = channel |> AMQP.Queue.declare(queue_name(), q_opts)
 
-    :ok = AMQP.Queue.bind(channel, queue_name(), exchange_name(), routing_key: "#")
+    :ok = channel |> AMQP.Queue.bind(queue_name(), exchange_name(), routing_key: "#")
     :ok
   end
 
@@ -95,8 +97,9 @@ defmodule Mix.Tasks.Perftest do
       |> Enum.map(fn _ ->
         Task.async(fn ->
           for _ <- 1..batch_size do
-            AMQP.Basic.publish(
-              channels |> Enum.random(),
+            channels
+            |> Enum.random()
+            |> AMQP.Basic.publish(
               exchange_name(),
               routing_key,
               payload,
@@ -113,7 +116,7 @@ defmodule Mix.Tasks.Perftest do
     Mix.shell().info("#{DateTime.now!("Etc/UTC")} - ... inboxes empty!")
   end
 
-  defp await_inboxes_empty(), do: await_inboxes_empty({-1, self(), ""})
+  defp await_inboxes_empty(), do: {-1, self(), ""} |> await_inboxes_empty()
 
   defp await_inboxes_empty({0, _, _}), do: :ok
 
@@ -129,6 +132,6 @@ defmodule Mix.Tasks.Perftest do
 
     Mix.shell().info("#{DateTime.now!("Etc/UTC")} - Draining #{inspect(mqls |> hd)} ...")
     Process.sleep(1000)
-    await_inboxes_empty(mqls |> hd)
+    mqls |> hd |> await_inboxes_empty()
   end
 end

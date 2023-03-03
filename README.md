@@ -20,7 +20,7 @@ To make this work you need to ...
 
 ```bash
 export RABBITMQ_URL=amqps://<username>:<password>@<hostname>:5671&verify=verify_none
-mix perftest 1000 100 1 1 1
+mix perftest 1000 100 1 1 1 1
 ```
 
 This will run a perftest against the cluster you have specified with ...
@@ -30,6 +30,9 @@ This will run a perftest against the cluster you have specified with ...
 * with 1 producer (task)
 * using 1 connection
 * using 1 channel (per connection)
+* creating a queue with a `x-max-length` of 1 (you can increase this value to
+  make the cluster keep more messages in mem, thus creating back-pressure that
+  will then put the channels into `flow`)
 
 Note: The pool of tasks will randomly use one of the channels from the
 pool of connections.
@@ -37,9 +40,10 @@ pool of connections.
 Other notable (hard-coded) configurations are ...
 
 * We are creating a `durable`, `topic` exchange with `auto_delete:true`
-* We are creating a queue with `auto_delete:true` and `max_length:1`
+* We are creating a queue with `auto_delete:true`
   * ... and bind it to the exchange with `routing_key:#`
-  * This will simulate that the messages get consumed
+  * This will simulate that the messages get consumed (see also how
+  to configure `x-max-length` above)
   * You can make [perftest][] behave the same way with `--consumers 0`
 * We create the channels with `publish_confirm:false` (the default)
 * We publish the messages with `persistent:false` (the default)
