@@ -39,14 +39,14 @@ defmodule Mix.Tasks.Perftest do
 
   defp usage do
     """
-    perftest <n> <size> <producers> <connections> <channels>
+    perftest <n> <size> <producers> <connections> <channels> <max>
 
     n - number of messages to publish
     size - size of every message in bytes
     producers - number of concurrent producer tasks
     connections - number of connections
     channels - number of channels
-    max-length - number of messages to keep in queue
+    max - max number of messages to keep in queue
     """
   end
 
@@ -72,6 +72,9 @@ defmodule Mix.Tasks.Perftest do
   defp queue_name(), do: "perftest"
 
   defp declare_exchange(channel, max_length) do
+    _ = channel |> AMQP.Queue.delete(queue_name())
+    _ = channel |> AMQP.Exchange.delete(exchange_name())
+
     ex_opts = [auto_delete: false, durable: false]
     :ok = channel |> AMQP.Exchange.declare(exchange_name(), :topic, ex_opts)
 
