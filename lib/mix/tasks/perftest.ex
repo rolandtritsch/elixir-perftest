@@ -8,7 +8,9 @@ defmodule Mix.Tasks.Perftest do
   # --- public functions
   @impl true
   @spec run([binary()]) :: :ok
-  def run([n, size, n_of_producers, n_of_connections, n_of_channels, max_length] = args) do
+  def run(
+        [n, size, n_of_producers, n_of_connections, n_of_channels, max_length, queue_type] = args
+      ) do
     Mix.shell().info("Starting perftest with #{inspect(args)} ...")
 
     {n, ""} = Integer.parse(n)
@@ -19,7 +21,7 @@ defmodule Mix.Tasks.Perftest do
     {max_length, ""} = Integer.parse(max_length)
 
     channels = amqp_url() |> open_channels(n_of_connections, n_of_channels)
-    :ok = channels |> hd() |> declare_exchange(max_length)
+    :ok = channels |> hd() |> declare_exchange(max_length, queue_type)
 
     {time, _} =
       :timer.tc(fn ->
@@ -39,7 +41,7 @@ defmodule Mix.Tasks.Perftest do
 
   defp usage do
     """
-    perftest <n> <size> <producers> <connections> <channels> <max>
+    perftest <n> <size> <producers> <connections> <channels> <max> <type>
 
     n - number of messages to publish
     size - size of every message in bytes
@@ -47,6 +49,7 @@ defmodule Mix.Tasks.Perftest do
     connections - number of connections
     channels - number of channels
     max - max number of messages to keep in queue
+    type - type of queue to use (classic|quorum)
     """
   end
 
@@ -71,7 +74,7 @@ defmodule Mix.Tasks.Perftest do
   defp exchange_name(), do: "perftest"
   defp queue_name(), do: "perftest"
 
-  defp declare_exchange(channel, max_length) do
+  defp declare_exchange(channel, max_length, queue_type) do
     _ = channel |> AMQP.Queue.delete(queue_name())
     _ = channel |> AMQP.Exchange.delete(exchange_name())
 
@@ -80,7 +83,7 @@ defmodule Mix.Tasks.Perftest do
 
     arguments = [
       {"x-max-length", :long, max_length},
-      {"x-queue-type", :longstr, "quorum"}
+      {"x-queue-type", :longstr, queue_type}
     ]
 
     q_opts = [auto_delete: false, durable: true, arguments: arguments]

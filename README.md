@@ -20,7 +20,7 @@ To make this work you need to ...
 
 ```bash
 export RABBITMQ_URL=amqps://<username>:<password>@<hostname>:5671&verify=verify_none
-mix perftest 1000 100 1 1 1 1
+mix perftest 1000 100 1 1 1 1 classic
 ```
 
 This will run a perftest against the cluster you have specified with ...
@@ -33,6 +33,7 @@ This will run a perftest against the cluster you have specified with ...
 * creating a queue with a `x-max-length` of 1 (you can increase this value to
   make the cluster keep more messages in mem, thus creating back-pressure that
   will then put the channels into `flow`)
+* using a `classic` queue (with `quorum` being the other option)
 
 Note: The pool of tasks will randomly use one of the channels from the
 pool of connections.
